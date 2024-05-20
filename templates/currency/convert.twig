@@ -1,0 +1,61 @@
+{% extends 'base.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const amount = urlParams.get('amount');
+            const currencyCode = urlParams.get('currencyCode');
+            urlParams.get('date') ? document.getElementById('date').value = urlParams.get('date') : null;
+            if (urlParams.get('rate')) {
+                document.getElementById('rate').value = {{ rate|number_format(2, '.', ',') }}
+            }
+            document.getElementById('amount').value = amount;
+            document.getElementById('currencyCode').value = currencyCode;
+        };
+        $(function() {
+            $('#date').datepicker({
+                dateFormat: 'yy-mm-dd',
+                minDate: new Date('2023-01-01'),
+                maxDate: new Date('2024-01-01')
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block body %}
+    <h1>Convert Currency</h1>
+    <form method="get" action="{{ path('currency_convert') }}">
+        <label for="amount">Amount:</label>
+        <input type="number" id="amount" name="amount" value="{{ app.request.query.get('amount') }}" required>
+        <label for="currencyCode">Currency Code:</label>
+        <select id="currencyCode" name="currencyCode" required {% if date is not defined %}disabled{% endif %}>
+            <option value="USD" {% if app.request.query.get('currencyCode') == 'USD' %}selected{% endif %}>USD</option>
+            <option value="EUR" {% if app.request.query.get('currencyCode') == 'EUR' %}selected{% endif %}>EUR</option>
+        </select><br><br>
+        {% if date is defined %}
+            <label for="date">Date:</label>
+            <input type="text" id="date" name="date" value="{{ app.request.query.get('date') }}" required><br><br>
+        {% endif %}
+        <label for="rate">Rate:</label>
+        <input type="text" id="rate" name="rate" value="{{ rate|number_format(2, '.', ',') }}" disabled><br><br>
+        <input type="hidden" name="rate" value="{{ rate|default(0)|number_format(2, '.', ',') }}">
+        <button type="submit">Convert</button>
+    </form>
+
+    {% if notFoundMessage is defined %}
+        <h2>{{ notFoundMessage }}</h2>
+    {% else %}
+        <h2>Converted Amount</h2>
+        <p>{{ amount }} {{ currencyCode }} is {{ convertedAmount|number_format(2, '.', ',') }} PLN</p>
+    {% endif %}
+
+    <a href="{{ path('currency_search') }}" class="button">Back to Currency List</a>
+{% endblock %}

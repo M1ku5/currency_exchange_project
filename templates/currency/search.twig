@@ -1,0 +1,125 @@
+{% extends 'base.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        $(function() {
+            $('#startDate, #endDate').datepicker({
+                dateFormat: 'yy-mm-dd',
+                minDate: new Date('2023-01-01'),
+                maxDate: new Date('2024-01-01')
+            });
+
+            // Ustawienie wartości inputów po załadowaniu strony
+            const urlParams = new URLSearchParams(window.location.search);
+            const currencyCode = urlParams.get('currencyCode');
+            const startDate = urlParams.get('startDate');
+            const endDate = urlParams.get('endDate');
+            const searchType = urlParams.get('searchType');
+            const sortOrder = urlParams.get('sortOrder');
+
+            if (currencyCode) document.getElementById('currencyCode').value = currencyCode;
+            if (startDate) document.getElementById('startDate').value = startDate;
+            if (endDate) document.getElementById('endDate').value = endDate;
+            if (searchType) document.getElementById('searchType').value = searchType;
+            if (sortOrder) document.getElementById('sortOrder').value = sortOrder;
+        });
+    </script>
+{% endblock %}
+
+{% block body %}
+    <h1>Currency Search</h1>
+    <form action="{{ path('currency_search') }}" method="get">
+        <label for="currencyCode">Currency Code:</label>
+        <select id="currencyCode" name="currencyCode">
+            <option value="USD" {% if currencyCode == 'USD' %}selected{% endif %}>USD</option>
+            <option value="EUR" {% if currencyCode == 'EUR' %}selected{% endif %}>EUR</option>
+        </select><br><br>
+        
+        <label for="startDate">Start Date:</label>
+        <input type="text" id="startDate" name="startDate" value="{{ startDate }}"><br><br>
+
+        <label for="endDate">End Date:</label>
+        <input type="text" id="endDate" name="endDate" value="{{ endDate }}"><br><br>
+
+        <label for="searchType">Search Type:</label>
+        <select id="searchType" name="searchType">
+            <option value="day" {% if searchType == 'day' %}selected{% endif %}>Day</option>
+            <option value="week" {% if searchType == 'week' %}selected{% endif %}>Week</option>
+            <option value="month" {% if searchType == 'month' %}selected{% endif %}>Month</option>
+            <option value="quarter" {% if searchType == 'quarter' %}selected{% endif %}>Quarter</option>
+        </select><br><br>
+
+        <label for="sortOrder">Sort Order:</label>
+        <select id="sortOrder" name="sortOrder">
+            <option value="ASC" {% if sortOrder == 'ASC' %}selected{% endif %}>Ascending</option>
+            <option value="DESC" {% if sortOrder == 'DESC' %}selected{% endif %}>Descending</option>
+        </select><br><br>
+
+        <button type="submit">Search</button>
+    </form>
+
+    {% if currencyRates is not empty %}
+        <h2>
+            {% if searchType == 'day' %}
+                Currency Rates by Day
+            {% elseif searchType == 'week' %}
+                Currency Rates by Week
+            {% elseif searchType == 'month' %}
+                Currency Rates by Month
+            {% elseif searchType == 'quarter' %}
+                Currency Rates by Quarter
+            {% endif %}
+        </h2>
+        <table class="currency-table">
+            <thead>
+                <tr>
+                    {% if searchType == 'day' %}
+                        <th>Date</th>
+                    {% elseif searchType == 'week' %}
+                        <th>Week</th>
+                    {% elseif searchType == 'month' %}
+                        <th>Month</th>
+                    {% elseif searchType == 'quarter' %}
+                        <th>Quarter</th>
+                    {% endif %}
+                    {% if searchType != 'day' %}
+                    <th>Average Rate</th>
+                    {% else %}
+                    <th>Rate</th>
+                    {% endif %}
+                    <th>Currency Code</th>
+                    <th>Convert</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rate in currencyRates %}
+                    <tr>
+                    {% if searchType == 'day' %}
+                        <td>{{ rate.date|date('Y-m-d') }}</td>
+                    {% elseif searchType == 'week' %}
+                        <td>{{ 'week ' ~ rate.date }}</td>
+                    {% elseif searchType == 'month' or searchType == 'quarter' %}
+                        <td>{{ rate.date }}</td>
+                    {% endif %}
+                        <td>{{ rate.rate }}</td>
+                        <td>{{ rate.currencyCode }}</td>
+                    {% if searchType == 'day' %}
+                        <td><a href="{{ path('currency_convert') }}?amount=1&currencyCode={{ rate.currencyCode }}&date={{ rate.date|date('Y-m-d') }}" class="button">Convert</a></td>
+                    {% else %}
+                        <td><a href="{{ path('currency_convert') }}?amount=1&currencyCode={{ rate.currencyCode }}&rate={{ rate.rate }}" class="button">Convert</a></td>
+                    {% endif %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No results found matching the criteria.</p>
+    {% endif %}
+{% endblock %}
